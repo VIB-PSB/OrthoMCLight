@@ -12,7 +12,6 @@
 
 package orthomclight_module;
 use strict;
-use Bio::SearchIO;
 use Storable;
 require Exporter;
 
