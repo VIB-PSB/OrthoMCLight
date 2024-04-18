@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 ## AUTHOR: Li Li, Feng Chen <fengchen@sas.upenn.edu>
-## ORTHOMCL [2007-04-04] Version 1.4
+## EDITED BY: Cecilia Sensalari and Michiel Van Bel
+## ORTHOMCL [2024-04-17] Version 1.4
 
 ## Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA USA.
 ## All rights reserved.
@@ -50,6 +51,7 @@ our @EXPORT = qw(
                   $PERCENT_MATCH_CUTOFF_DEFAULT
                   $MAX_WEIGHT_DEFAULT
                   $MCL_INFLATION_DEFAULT
+                  $NUM_THREADS_DEFAULT
                   $all_fa_file
                   $genome_gene_file
                   $blast_file
@@ -73,18 +75,18 @@ our @EXPORT = qw(
 
 
 # softwares
-our $BLASTALL                            = "/usr/local/bin/Blast/blast-2.2.13/bin/blastall";
+our $BLASTALL                            = "blastall";
 our $BLAST_FORMAT                        = "compact";  # "compact" corresponds to NCBI-BLAST's -m 8
                                                        # "full" corresponds to NCBI-BLAST's -m 0
                                                        # for WU-BLAST, make changes on subroutine executeBLASTALL
 our $BLAST_NOCPU                         = 1;          # Useful when running BLAST on multi-processor machine
-our $FORMATDB                            = "/usr/local/bin/Blast/blast-2.2.13/bin/formatdb";
-our $MCL                                 = "/Users/fengchen/mcl-02-063/shmcl/mcl";
+our $FORMATDB                            = "formatdb";
+our $MCL                                 = "mcl";
 
 # path
-our $PATH_TO_ORTHOMCL                    = "/Users/fengchen/ORTHOMCL/V1.4/";   # must end with "/" 
-our $ORTHOMCL_DATA_DIR                   = $PATH_TO_ORTHOMCL."/sample_data/";
-our $ORTHOMCL_WORKING_DIR                = '';                            # will be changed with each run
+our $PATH_TO_ORTHOMCL                    = "/usr/bin/";                   # must end with "/"
+our $ORTHOMCL_DATA_DIR                   = $ENV{ORTHOMCL_DATA_DIR};
+our $ORTHOMCL_WORKING_DIR                = $ENV{ORTHOMCL_WORKING_DIR};    
 our $ORTHOMCL_FORMER_RUN_DIR             = '';                            # if and only if user wants to use former run data
 our $ORTHOMCL_TMP_DIR                    = '';                            # will be changed with each run
 
@@ -96,7 +98,7 @@ our $MAX_WEIGHT_DEFAULT                  = 316;     # You need to see what's the
                                                     # of your blast software. For example, if 9e-99 is 
                                                     # the case you should use -log(9e-99)=100.
 our $MCL_INFLATION_DEFAULT               = 1.5;
-
+our $NUM_THREADS_DEFAULT                 = 1;
 
 # files
 our $all_fa_file                         = "all.fa";
@@ -140,7 +142,8 @@ sub constructDirectory {
 	my $date                 = $_[0];
 	my $former_run_dir       = $_[1];
 
-	$ORTHOMCL_WORKING_DIR = $PATH_TO_ORTHOMCL.(split(" ",$date))[1]."_".(split(" ",$date))[2];
+	# Edit 17/04/2024: ORTHOMCL_WORKING_DIR not generated within PATH_TO_ORTHOMCL
+    $ORTHOMCL_WORKING_DIR = $ORTHOMCL_WORKING_DIR.(split(" ",$date))[1]."_".(split(" ",$date))[2];
 	my $no=1;
 	if (-e $ORTHOMCL_WORKING_DIR) {
 		$no++;
@@ -206,7 +209,7 @@ sub mode5 {
 	my $former_run_dir       = $_[2];
 	my $usr_taxa_file        = $_[3];
 	my $inflation            = $_[4];
-
+	my $num_threads          = $_[5];
 
 	$ORTHOMCL_WORKING_DIR = $PATH_TO_ORTHOMCL.(split(" ",$date))[1]."_".(split(" ",$date))[2];
 	my $no=1;
@@ -334,7 +337,7 @@ sub mode5 {
 	close(IDX);
 	write_log("\nIndex file $index_file generated\n");
 	
-	executeMCL($matrix_file,$mcl_file,$inflation);
+	executeMCL($matrix_file,$mcl_file,$inflation,$num_threads);
 	mcl_backindex($mcl_file,$mcl_bi_file);
 }
 
@@ -473,9 +476,10 @@ sub executeBLASTALL {
 sub executeMCL {
 	my $matrix_file = $_[0];
 	my $mcl_file    = $_[1];
-	my $inflation  = $_[2];
-	write_log("\nRun MCL program\n  $MCL $matrix_file -I $inflation -o $mcl_file\n");
-	system("$MCL $matrix_file -I $inflation -o $mcl_file");
+	my $inflation   = $_[2];
+	my $num_threads = $_[3];
+	write_log("\nRun MCL program\n  $MCL $matrix_file -I $inflation -o $mcl_file -te $num_threads\n");
+	system("$MCL $matrix_file -I $inflation -o $mcl_file -te $num_threads");
 	if (-e $mcl_file) {
 		write_log("\nMCL result $mcl_file generated!\n");}
 	else {dieWithUnexpectedError("$mcl_file failed to be generated!");}
@@ -487,69 +491,109 @@ sub executeMCL {
 # 1. String Variable: blast out file
 # 2. String Variable: blast parse out file
 # 3. pv_cutoff
-# Last modified: 05/10/06
+# Last modified: 17/04/2024 by Cecilia Sensalari and Michiel Van Bel;
+#                reduces the time needed to parse large blast tables (e.g. 20 GB)
+#                from days to about half an hour, by reading line by line
+#                instead of loading the table in memory.
 sub blast_parse {
-	my $blastfile        = $_[0];
-	my $parseoutfile     = $_[1];
-	my $pv_cutoff        = $_[2];
-	my %seq_len          = %{$_[3]};
-	my %blast_flag       = %{$_[4]};
+    my ($blastfile, $parseoutfile, $pv_cutoff, $seq_len_ref, $blast_flag_ref) = @_;
 
-	open (PARSEOUT,">$parseoutfile");
-	write_log("\nParsing blast result!\n");
-	my $searchio = Bio::SearchIO->new(-file   => $blastfile,
-									  -format => $blast_flag{'format'}) or dieWithUnexpectedError("Blast parsing failed!");
-	my $similarityid=1;
-	while (my $result = $searchio->next_result()) {
-		my $queryid=$result->query_name;
-		my $querylen;
-		if (defined $seq_len{$queryid}) {
-			$querylen=$seq_len{$queryid};
-		} else {
-			$querylen=$result->query_length; # query length is not stored in BLAST m8 format, so querylen will be 0
-		}
-		while( my $hit = $result->next_hit ) {
-			next unless numeric_pvalue($hit->significance) <= $pv_cutoff;
-			my $subjectid=$hit->name;
-			my $subjectlen;
-			if (defined $seq_len{$subjectid}) {
-				$subjectlen=$seq_len{$subjectid};
-			} else {
-				$subjectlen=$hit->length; # subject length is not stored in BLAST m8 format, so querylen will be 0
-			}
-			my $pvalue=numeric_pvalue($hit->significance);
-			if ($blast_flag{'hsp'}) {
-				my $simspanid=1;
-				my $simspan='';
-				my (@percentidentity,@hsplength);
-				while( my $hsp = $hit->next_hsp ) {
-					my $querystart=$hsp->start('query');
-					my $queryend=$hsp->end('query');
-					my $subjectstart=$hsp->start('sbjct');
-					my $subjectend=$hsp->end('sbjct');
-					$percentidentity[$simspanid]=$hsp->percent_identity;
-					$hsplength[$simspanid]=$hsp->length('hit');
-					$simspan.="$simspanid:$querystart-$queryend:$subjectstart-$subjectend.";
-					$simspanid++;
-				}
+    write_log("\nParsing blast result!\n");
+
+    open(my $blast_fh, "<", $blastfile) or die "Cannot open $blastfile: $!";
+    open(my $parseout_fh, ">", $parseoutfile) or die "Cannot open $parseoutfile for writing: $!";
+
+    my %seq_len = %$seq_len_ref;
+    my %blast_flag = %$blast_flag_ref;
+
+    my $similarityid = 1;
+	my $current_query = "";
+	my $current_hit="";
+	my $current_pval=0;
+	my @current_hsp_length=();
+	my @current_hsp_percent_identity=();
+	
+	my $hsp_line="";
+	my $similarityid =1;
+    while (my $line = <$blast_fh>) {
+        chomp($line);
+		my @split = split("\t",$line);
+		if(scalar(@split)!=12){next;}
+		my $query 	= $split[0];
+		my $hit 	= $split[1];
+		my $qstart 	= $split[6];
+		my $qend 	= $split[7];
+		my $sstart 	= $split[8];
+		my $send 	= $split[9];
+		my $pval 	= $split[10];
+		if($pval > $pv_cutoff){next;}
+		if($query ne $current_query){
+			if($current_query ne ""){
 				my $sum_identical=0;
 				my $sum_length=0;
-				for (my $i=1;$i<$simspanid;$i++) {
-					$sum_identical+=$percentidentity[$i]*$hsplength[$i];
-					$sum_length+=$hsplength[$i];
+				for (my $i=0;$i<scalar(@current_hsp_length);$i++) {  # when only first hsp
+					$sum_identical+=$current_hsp_percent_identity[$i]*$current_hsp_length[$i];
+					$sum_length+=$current_hsp_length[$i];
 				}
 				my $percentIdent=int($sum_identical/$sum_length);
-				print PARSEOUT "$similarityid;$queryid;$querylen;$subjectid;$subjectlen;$pvalue;$percentIdent;$simspan\n";
-			} else {
-				print PARSEOUT "$similarityid;$queryid;$querylen;$subjectid;$subjectlen;$pvalue;0;NULL\n";
+				my $outputline="$similarityid;$current_query;0;$current_hit;0;$current_pval;$percentIdent;$hsp_line";
+				print $parseout_fh $outputline."\n";
+				$similarityid++;
 			}
-			$similarityid++;
+			$current_query=$query;
+			$current_hit=$hit;
+			$current_pval=$pval;
+			@current_hsp_length=();
+			@current_hsp_percent_identity=();
+			push(@current_hsp_length,($split[9]-$split[8]+1));
+			push(@current_hsp_percent_identity,$split[2]);
+			$hsp_line="1:$qstart-$qend:$sstart-$send.";
+		}
+		elsif($hit ne $current_hit){
+			if($current_hit ne ""){
+				my $sum_identical=0;
+				my $sum_length=0;
+				for (my $i=0;$i<scalar(@current_hsp_length);$i++) {
+					$sum_identical+=$current_hsp_percent_identity[$i]*$current_hsp_length[$i];
+					$sum_length+=$current_hsp_length[$i];
+				}
+				my $percentIdent=int($sum_identical/$sum_length);
+				my $outputline="$similarityid;$current_query;0;$current_hit;0;$current_pval;$percentIdent;$hsp_line";
+				print $parseout_fh $outputline."\n";
+				$similarityid++;
+			}
+			$current_query=$query;
+			$current_hit=$hit;
+			$current_pval=$pval;
+			@current_hsp_length=();
+			@current_hsp_percent_identity=();
+			push(@current_hsp_length,($split[9]-$split[8]+1));
+			push(@current_hsp_percent_identity,$split[2]);
+			$hsp_line="1:$qstart-$qend:$sstart-$send.";
+		}
+		elsif($hit eq $current_hit && $query eq $current_query){
+			push(@current_hsp_length,($split[9]-$split[8]+1));
+			push(@current_hsp_percent_identity,$split[2]);
+			my $simspanid=scalar(@current_hsp_length);
+			$hsp_line = $hsp_line . "$simspanid:$qstart-$qend:$sstart-$send.";
 		}
 	}
-	write_log("Parsing blast file finished\n");
-	close(PARSEOUT);
-} ## blast_parse
 
+	my $sum_identical=0;
+	my $sum_length=0;
+	for (my $i=0;$i<scalar(@current_hsp_length);$i++) {  # when only first hsp
+		$sum_identical+=$current_hsp_percent_identity[$i]*$current_hsp_length[$i];
+		$sum_length+=$current_hsp_length[$i];
+	}
+	my $percentIdent=int($sum_identical/$sum_length);
+
+	my $outputline="$similarityid;$current_query;0;$current_hit;0;$current_pval;$percentIdent;$hsp_line";
+	print $parseout_fh $outputline."\n";
+	
+    write_log("Parsing blast file finished\n");
+    close($parseout_fh);
+    close($blast_fh);
+}
 
 
 
@@ -592,6 +636,7 @@ sub numeric_pvalue {
 #    blast parse out file.
 # Last modified: 07/19/04
 sub constructIDX_for_bpofile {
+	write_log("Constructing bpo.idx file\n");
 	my ($file,$idxfile)=@_;
 	my @address;
 	open (FILE,$file) or dieWithUnexpectedError("can't open $file file");
@@ -615,6 +660,7 @@ sub constructIDX_for_bpofile {
 # 2. String Variable: file name storing the hash
 # Last modified: 07/19/04
 sub constructSE_for_bpofile {
+	write_log("Constructing bpo.se file\n");
 	my ($bpo_file,$bpo_se_file)=@_;
 	my $lastquery='';my $lastsimid=0;
 	open (BPOUT,$bpo_file) or dieWithUnexpectedError("can't open $bpo_file");
@@ -854,6 +900,7 @@ sub write_parameter_log {
 	my $pmatch_cutoff    = $_[5];
 	my $inflation        = $_[6];
 	my $maximum_weight   = $_[7];
+	my $num_threads      = $_[8];
 	open (PLOG,">$parameter_log_file") or die "can't open file";
 	print PLOG "########################COMMAND######################\n";
 	print PLOG "$command\n";
@@ -864,6 +911,7 @@ sub write_parameter_log {
 	printf PLOG "%25s  %-10s\n","Percent Match Cut-off",$pmatch_cutoff;
 	printf PLOG "%25s  %-10s\n","MCL Inflation",$inflation;
 	printf PLOG "%25s  %-10s\n","Maximum Weight",$maximum_weight;
+	printf PLOG "%25s  %-10s\n","Number of threads for MCL",$num_threads;
 	printf PLOG "#######################SPECIES########################\n";
 	foreach my $taxon (@taxa) {
 		printf PLOG "%25s  %-20s\n",$taxon,scalar(@{$gindex{$taxon}})." genes";

@@ -1,7 +1,8 @@
 OrthoMCL: Ortholog Clustering Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 AUTHOR: Feng Chen <fengchen@sas.upenn.edu>, Li Li
-ORTHOMCL [2006-10-02] Version 1.4 + MCL-02-063
+## EDITED BY: Cecilia Sensalari and Michiel Van Bel
+## ORTHOMCL [2024-04-17] Version 1.4
 
 Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA 
 USA. All rights reserved.
@@ -33,8 +34,9 @@ Softwares:      1. BLAST (NCBI-BLAST, WU-BLAST, etc.)
                    format recently which is not compatible with OrthoMCL. 
                    Please use the MCL-02-063 version enclosed with this 
                    package, which has been the default for all test analysis.
-Perl Modules:   1. Bio::SearchIO (part of BioPerl, http://bioperl.org)
-                2. Storable
+Perl Modules:   1. Storable
+
+Note: OrthoMCLight does not need Bio::SearchIO anymore.
 
 
 2. Setting the variables in "OrthoMCL/orthomcl_module.pm"
@@ -118,7 +120,7 @@ The five modes of OrthoMCL are:
           (Please refer to 5. File Formats). No BLAST performed.
 
      Example:  % orthomcl.pl --mode 3 --blast_file AtCeHs_blast.out --gg_file 
-                 AtCeHs.gg
+                 AtCeHs.gg --num-threads 4
 
 
   Mode 4: OrthoMCL analysis from user-provided BPO (BLAST PARSING OUT) file
@@ -126,13 +128,14 @@ The five modes of OrthoMCL are:
           (Please refer to 5. File Formats). No BLAST or BLAST parsing performed.
 
      Example:  % orthomcl.pl --mode 4 --bpo_file AtCeHs.bpo --gg_file AtCeHs.gg
+                 --num-threads 4
 
   Mode 5: OrthoMCL analysis based on previous run, but with less taxa included
           or with only inflation value changed (FASTER than mode 2, no selection
           on reciprocal best/better hits performed).
 
      Example:  % orthomcl.pl --mode 5 --former_run_dir Sep_8 --taxa_file AtCeHs.gg
-                 --inflation=1.1
+                 --inflation=1.1 --num-threads 4
 
 4. OrthoMCL Arguments
 ~~~~~~~~~~~~~~~~~~~~~
@@ -165,6 +168,7 @@ The five modes of OrthoMCL are:
  taxa_file=<String>      TAXA file provided by user, required in Mode 5. 
                          Please refer to ORTHOMCL_INSTALL about its
                          format.
+ num_threads=<Int>       Number of threads when running the MCL command.
 
 5. File Format in OrthoMCL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

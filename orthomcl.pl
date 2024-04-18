@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 ## AUTHORS: Li Li, Feng Chen <fengchen@sas.upenn.edu>
-## ORTHOMCL [2007-04-04] Version 1.4
+## EDITED BY: Cecilia Sensalari and Michiel Van Bel
+## ORTHOMCL [2024-04-17] Version 1.4
 
 ## Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA USA.
 ## All rights reserved.
@@ -13,9 +14,10 @@ my $starttime = `date`;
 use strict;
 use Getopt::Long;
 use File::Basename;
+use lib dirname (__FILE__);
 use orthomcl_module;
 
-my ($mode,$fa_files,$pv_cutoff,$pi_cutoff,$pmatch_cutoff,%blast_flag,$inflation,$maximum_weight);
+my ($mode,$fa_files,$pv_cutoff,$pi_cutoff,$pmatch_cutoff,%blast_flag,$inflation,$maximum_weight,$num_threads);
 my ($usr_blast_file,$usr_bpo_file,$usr_gg_file,$usr_taxa_file,$former_run_dir);         # For Mode 2, 3 or 4
 
 
@@ -33,7 +35,8 @@ my $command=basename($0)." ".join(' ',@ARGV)."\n";
 			"bpo_file=s"          => \$usr_bpo_file,
 			"gg_file=s"           => \$usr_gg_file,
 			"taxa_file=s"         => \$usr_taxa_file,
-			"former_run_dir=s"    => \$former_run_dir
+			"former_run_dir=s"    => \$former_run_dir,
+			"num_threads=i"       => \$num_threads
 );
 
 if (!defined $mode) {printHelp();}
@@ -44,6 +47,7 @@ $pi_cutoff      = $pi_cutoff      ? $pi_cutoff      : $PERCENT_IDENTITY_CUTOFF_D
 $pmatch_cutoff  = $pmatch_cutoff  ? $pmatch_cutoff  : $PERCENT_MATCH_CUTOFF_DEFAULT;
 $inflation      = $inflation      ? $inflation      : $MCL_INFLATION_DEFAULT;
 $maximum_weight = $maximum_weight ? $maximum_weight : $MAX_WEIGHT_DEFAULT;
+$num_threads    = $num_threads    ? $num_threads    : $NUM_THREADS_DEFAULT;
 
 if ($BLAST_FORMAT eq 'full') {
 	%blast_flag=( 'm'      =>0,
@@ -106,7 +110,7 @@ elsif ($mode == 4) {
 } 
 elsif ($mode == 5) {
 	if ((defined $former_run_dir) && (defined $usr_taxa_file)) {
-		mode5($starttime,$command,$former_run_dir,$usr_taxa_file,$inflation);
+		mode5($starttime,$command,$former_run_dir,$usr_taxa_file,$inflation,$num_threads);
 		my $endtime = `date`;
 		&write_endtime_in_parameter_log($endtime);
 		write_log("\nStart Time: $starttime\nEnd Time:   $endtime\n");
@@ -117,7 +121,7 @@ elsif ($mode == 5) {
 else {dieWithUnexpectedError("Mode 1,2,3,4 or 5 needs to be given!");}
 
 
-&write_parameter_log($starttime,$command,$mode,$pv_cutoff,$pi_cutoff,$pmatch_cutoff,$inflation,$maximum_weight);
+&write_parameter_log($starttime,$command,$mode,$pv_cutoff,$pi_cutoff,$pmatch_cutoff,$inflation,$maximum_weight,$num_threads);
 
 &constructIDX_for_bpofile($bpo_file,$bpo_idx_file) unless (-e $bpo_idx_file);
 &constructSE_for_bpofile($bpo_file,$bpo_se_file) unless (-e $bpo_se_file);
@@ -284,7 +288,7 @@ write_matrix_index($matrix_file,$index_file);
 %graph=();
 %weight=();
 
-executeMCL($matrix_file,$mcl_file,$inflation);
+executeMCL($matrix_file,$mcl_file,$inflation,$num_threads);
 mcl_backindex($mcl_file,$mcl_bi_file);
 %gindex2=();
 
@@ -673,4 +677,4 @@ Arguments:
  taxa_file=<String>      TAXA file provided by user, required in Mode 5. 
                          Please refer to README about its
                          format.
- 
+ num_threads=<Int>       Number of threads when running the MCL command.
