@@ -505,7 +505,6 @@ sub blast_parse {
     my %seq_len = %$seq_len_ref;
     my %blast_flag = %$blast_flag_ref;
 
-    my $similarityid = 1;
 	my $current_query = "";
 	my $current_hit="";
 	my $current_pval=0;
