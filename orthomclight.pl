@@ -1,13 +1,13 @@
 #!/usr/bin/perl -w
 ## AUTHORS: Li Li, Feng Chen <fengchen@sas.upenn.edu>
 ## EDITED BY: Cecilia Sensalari and Michiel Van Bel
-## ORTHOMCL [2024-04-17] Version 1.4
+## ORTHOMCL [2024-04-17] Edited Version 1.4 "OrthoMCLight"
 
 ## Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA USA.
 ## All rights reserved.
 
-## Before orthomcl.pl can be used, some variables (including directory variables
-## or parameter variables) in orthomcl_module.pm need to be set, as described in
+## Before orthomclight.pl can be used, some variables (including directory variables
+## or parameter variables) in orthomclight_module.pm need to be set, as described in
 ## README.
 
 my $starttime = `date`;
@@ -15,7 +15,7 @@ use strict;
 use Getopt::Long;
 use File::Basename;
 use lib dirname (__FILE__);
-use orthomcl_module;
+use orthomclight_module;
 
 my ($mode,$fa_files,$pv_cutoff,$pi_cutoff,$pmatch_cutoff,%blast_flag,$inflation,$maximum_weight,$num_threads);
 my ($usr_blast_file,$usr_bpo_file,$usr_gg_file,$usr_taxa_file,$former_run_dir);         # For Mode 2, 3 or 4
@@ -609,41 +609,41 @@ sub printHelp {
 
 
 
-######################################USAGE OF ORTHOMCL.PL###################################
+######################################USAGE OF ORTHOMCLIGHT.PL###################################
 __DATA__
 
 Copyright (C) 2004-2006 by University of Pennsylvania,
 Philadelphia, PA USA. All rights reserved.
 
-Before orthomcl.pl can be used, some variables 
+Before orthomclight.pl can be used, some variables 
 (including directory variables or parameter variables)
-in orthomcl_module.pm need to be set, as described in
+in orthomclight_module.pm need to be set, as described in
 README.
 
-Usage: orthomcl.pl --mode 1,2,3,4 or 5 <tagged arguments>
+Usage: orthomclight.pl --mode 1,2,3,4 or 5 <tagged arguments>
 
 Modes:
 ~~~~~~
 
  1: OrthoMCL analysis from FASTA files
-% orthomcl.pl --mode 1 --fa_files Ath.fa,Hsa.fa,Sce.fa
+% orthomclight.pl --mode 1 --fa_files Ath.fa,Hsa.fa,Sce.fa
 
  2: OrthoMCL analysis based on former OrthoMCL run. No BLAST or BLAST
  parsing performed.
-% orthomcl.pl --mode 2 --former_run_dir Sep_8 --inflation 1.4
+% orthomclight.pl --mode 2 --former_run_dir Sep_8 --inflation 1.4
 
  3: OrthoMCL analysis from user-provided BLAST result. No BLAST 
  performed.
-% orthomcl.pl --mode 3 --blast_file AtCeHs_blast.out --gg_file 
+% orthomclight.pl --mode 3 --blast_file AtCeHs_blast.out --gg_file 
 AtCeHs.gg
 
  4: OrthoMCL analysis based on user-provided BPO (BLAST PARSE OUT) 
  file and GG (Genome-Gene Index) file
-% orthomcl.pl --mode 4 --bpo_file AtCeHs.bpo --gg_file AtCeHs.gg
+% orthomclight.pl --mode 4 --bpo_file AtCeHs.bpo --gg_file AtCeHs.gg
 
  5: OrthoMCL analysis based on matrix of former OrthoMCL run, but with
  LESS genomes
-% orthomcl.pl --mode 5 --former_run_dir Sep_8 --taxa_file AtCeHs.gg
+% orthomclight.pl --mode 5 --former_run_dir Sep_8 --taxa_file AtCeHs.gg
 --inflation=1.1
 
 Arguments:

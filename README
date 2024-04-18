@@ -7,8 +7,8 @@ AUTHOR: Feng Chen <fengchen@sas.upenn.edu>, Li Li
 Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA 
 USA. All rights reserved.
 
-Before orthomcl.pl can be used, some variables (including directory 
-variables or parameter variables) in orthomcl_module.pm need to be set, 
+Before orthomclight.pl can be used, some variables (including directory 
+variables or parameter variables) in orthomclight_module.pm need to be set, 
 as described in README.
 
 Reference: 
@@ -39,11 +39,11 @@ Perl Modules:   1. Storable
 Note: OrthoMCLight does not need Bio::SearchIO anymore.
 
 
-2. Setting the variables in "OrthoMCL/orthomcl_module.pm"
+2. Setting the variables in "OrthoMCL/orthomclight_module.pm"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Most global variables used in "OrthoMCL/orthomcl.pl" need to be set
-in the perl module "OrthoMCL/orthomcl_module.pm".
+Most global variables used in "OrthoMCL/orthomclight.pl" need to be set
+in the perl module "OrthoMCL/orthomclight_module.pm".
 
 --- $PATH_TO_ORTHOMCL: the orthomcl directory itself
     (example: $PATH_TO_ORTHOMCL = "/disk3/fengchen/orthomcl/";)
@@ -65,10 +65,10 @@ in the perl module "OrthoMCL/orthomcl_module.pm".
     p-value is in the order of -99, maximum_weight should be 100; if -299, 
     maximum_weight should be 300 <DEFAULT>.
 
-Now you can run orthomcl.pl on a three-species test set, since
+Now you can run orthomclight.pl on a three-species test set, since
 the variables $PATH_TO_ORTHOMCL, $BLASTALL, $FORMATDB and $MCL
 are set.
- % orthomcl.pl --mode 1 --fa_files "Ath.fa,Hsa.fa,Sce.fa"
+ % orthomclight.pl --mode 1 --fa_files "Ath.fa,Hsa.fa,Sce.fa"
 
  Note: Here the test set Ath.fa, Hsa.fa and Sce.fa only contain
  15, 16 and 11 sequences, respectively. Such a test set is selected
@@ -105,7 +105,7 @@ The five modes of OrthoMCL are:
   Mode 1: OrthoMCL analysis from FASTA files. OrthoMCL starts from
           the beginning BLAST to final MCL.
 
-     Example:  % orthomcl.pl --mode 1 --fa_files Ath.fa,Hsa.fa,Sce.fa
+     Example:  % orthomclight.pl --mode 1 --fa_files Ath.fa,Hsa.fa,Sce.fa
 
   Mode 2: OrthoMCL analysis based on former OrthoMCL run (former run
           directory needs to be given), if you want to change the 
@@ -113,13 +113,13 @@ The five modes of OrthoMCL are:
           your former run BLAST p-value cutoff), percent identity cutoff
           or percent match cutoff. No BLAST or BLAST parsing performed.
 
-     Example:  % orthomcl.pl --mode 2 --former_run_dir Sep_8 --inflation 1.4
+     Example:  % orthomclight.pl --mode 2 --former_run_dir Sep_8 --inflation 1.4
 
   Mode 3: OrthoMCL analysis from user-provided BLAST result BLAST out file
           and genome gene relation file telling which genome has which gene
           (Please refer to 5. File Formats). No BLAST performed.
 
-     Example:  % orthomcl.pl --mode 3 --blast_file AtCeHs_blast.out --gg_file 
+     Example:  % orthomclight.pl --mode 3 --blast_file AtCeHs_blast.out --gg_file 
                  AtCeHs.gg --num-threads 4
 
 
@@ -127,14 +127,14 @@ The five modes of OrthoMCL are:
           and GG (genome gene relation) file telling which genome has which gene
           (Please refer to 5. File Formats). No BLAST or BLAST parsing performed.
 
-     Example:  % orthomcl.pl --mode 4 --bpo_file AtCeHs.bpo --gg_file AtCeHs.gg
+     Example:  % orthomclight.pl --mode 4 --bpo_file AtCeHs.bpo --gg_file AtCeHs.gg
                  --num-threads 4
 
   Mode 5: OrthoMCL analysis based on previous run, but with less taxa included
           or with only inflation value changed (FASTER than mode 2, no selection
           on reciprocal best/better hits performed).
 
-     Example:  % orthomcl.pl --mode 5 --former_run_dir Sep_8 --taxa_file AtCeHs.gg
+     Example:  % orthomclight.pl --mode 5 --former_run_dir Sep_8 --taxa_file AtCeHs.gg
                  --inflation=1.1 --num-threads 4
 
 4. OrthoMCL Arguments
@@ -234,7 +234,7 @@ Please report any bug to us. Thanks a lot.
 I got several emails reporting "division by zero" error during BLAST parsing
 process. If you happen to meet this as well, that means some of your BLAST 
 result is truncated, which causes some hits are not listed in the alignment
-part. In this case, set $blast_flag{'hsp'}=0 in orthomcl.pl lines 48-60,
+part. In this case, set $blast_flag{'hsp'}=0 in orthomclight.pl lines 48-60,
 which will not result in HSP parsing. Besides, you can not use any percent
 identity cutoff or percent coverage cutoff, since your data lack such 
 information.

@@ -1,16 +1,16 @@
 #!/usr/bin/perl -w
 ## AUTHOR: Li Li, Feng Chen <fengchen@sas.upenn.edu>
 ## EDITED BY: Cecilia Sensalari and Michiel Van Bel
-## ORTHOMCL [2024-04-17] Version 1.4
+## ORTHOMCL [2024-04-17] Edited Version 1.4 "OrthoMCLight"
 
 ## Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA USA.
 ## All rights reserved.
 
-## Before orthomcl.pl can be used, some variables (including directory variables
-## or parameter variables) in orthomcl_module.pm need to be set, as described in
+## Before orthomclight.pl can be used, some variables (including directory variables
+## or parameter variables) in orthomclight_module.pm need to be set, as described in
 ## ORTHOMCL_INSTALL.
 
-package orthomcl_module;
+package orthomclight_module;
 use strict;
 use Bio::SearchIO;
 use Storable;
