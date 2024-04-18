@@ -602,7 +602,7 @@ sub matchlen {
 # Last modified: 07/22/04
 sub printHelp {
 	my (@foo) = <DATA>;
-	print STDERR "OrthoMCL V$VERSION\n";
+	print STDERR "OrthoMCLight V$VERSION\n";
 	print STDERR @foo;
 	exit 1;
 }
