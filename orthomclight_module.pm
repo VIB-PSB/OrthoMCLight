@@ -513,10 +513,12 @@ sub blast_parse {
 	
 	my $hsp_line="";
 	my $similarityid =1;
+
+	# Loop through BLAST table, reading line by line
     while (my $line = <$blast_fh>) {
         chomp($line);
 		my @split = split("\t",$line);
-		if(scalar(@split)!=12){next;}
+		if(scalar(@split)!=12){next;} # Only able to parse the "compact" format with 12 columns
 		my $query 	= $split[0];
 		my $hit 	= $split[1];
 		my $qstart 	= $split[6];
@@ -524,12 +526,16 @@ sub blast_parse {
 		my $sstart 	= $split[8];
 		my $send 	= $split[9];
 		my $pval 	= $split[10];
-		if($pval > $pv_cutoff){next;}
+		if($pval > $pv_cutoff){next;} # Ignore hit if p-value is too large
+
+		# Case 1: Encountering a different query ID compared to the previous line;
+		#         it happens when reading the first line of the table or
+		#		  when stepping to the result lines of a new query.
 		if($query ne $current_query){
 			if($current_query ne ""){
 				my $sum_identical=0;
 				my $sum_length=0;
-				for (my $i=0;$i<scalar(@current_hsp_length);$i++) {  # when only first hsp
+				for (my $i=0;$i<scalar(@current_hsp_length);$i++) {
 					$sum_identical+=$current_hsp_percent_identity[$i]*$current_hsp_length[$i];
 					$sum_length+=$current_hsp_length[$i];
 				}
@@ -547,6 +553,8 @@ sub blast_parse {
 			push(@current_hsp_percent_identity,$split[2]);
 			$hsp_line="1:$qstart-$qend:$sstart-$send.";
 		}
+		# Case 2: Encountering the same query ID and a different hit ID compared to the previous line;
+		#         it happens when a query aligns with multiple different genes.
 		elsif($hit ne $current_hit){
 			if($current_hit ne ""){
 				my $sum_identical=0;
@@ -569,6 +577,8 @@ sub blast_parse {
 			push(@current_hsp_percent_identity,$split[2]);
 			$hsp_line="1:$qstart-$qend:$sstart-$send.";
 		}
+		# Case 3: Encountering the same query ID and the same hit ID compared to the previous line;
+		#         it happens when the pair has multiple HSPs.
 		elsif($hit eq $current_hit && $query eq $current_query){
 			push(@current_hsp_length,($split[9]-$split[8]+1));
 			push(@current_hsp_percent_identity,$split[2]);
@@ -579,7 +589,7 @@ sub blast_parse {
 
 	my $sum_identical=0;
 	my $sum_length=0;
-	for (my $i=0;$i<scalar(@current_hsp_length);$i++) {  # when only first hsp
+	for (my $i=0;$i<scalar(@current_hsp_length);$i++) {
 		$sum_identical+=$current_hsp_percent_identity[$i]*$current_hsp_length[$i];
 		$sum_length+=$current_hsp_length[$i];
 	}
