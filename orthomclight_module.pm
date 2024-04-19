@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 ## AUTHOR: Li Li, Feng Chen <fengchen@sas.upenn.edu>
 ## EDITED BY: Cecilia Sensalari and Michiel Van Bel
-## ORTHOMCL [2024-04-17] Edited Version 1.4 "OrthoMCLight"
+## OrthoMCLight [2024-04-17] Edited OrthoMCL Version 1.4
 
 ## Copyright (C) 2004~2006 by University of Pennsylvania, Philadelphia, PA USA.
 ## All rights reserved.
